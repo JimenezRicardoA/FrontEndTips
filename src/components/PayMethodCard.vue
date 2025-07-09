@@ -1,6 +1,12 @@
 <template>
 <button :class = "['payCard', { 'payCard-selected': isSelected }]" @click="select">
-    <img :src="base64ImageUrl" alt="icono" class="icon-img"/>
+    <img 
+    v-if="imageUrl" 
+    :src="imageUrl" 
+    :alt="`Icono ${method}`" 
+    class="icon-img"
+    @error="onImageError"
+    />
     <span>{{ method }}</span>
 </button>
 </template>
@@ -16,10 +22,33 @@ const props = defineProps<{
     selectedMethod: string;
 }>();
 
+const imageError = ref(false);
 
-const base64ImageUrl = computed(() => {
-    return `data:image/svg+xml;base64,${btoa(props.icon)}`;
-})
+const imageUrl = computed(() => {
+    
+    if (props.icon.length > 0) {
+        try {
+            const base64String = props.icon.includes(',') ? props.icon.split(',')[1] : props.icon;
+            
+            const decodedSvg = atob(base64String);
+            if (decodedSvg.includes('<svg') || decodedSvg.includes('<?xml')) {
+                return `data:image/svg+xml;base64,${base64String}`;
+            }
+            
+            return `data:image/png;base64,${base64String}`;
+        } catch (error) {
+            console.warn('Error procesando imagen base64:', error);
+            return null;
+        }
+    }
+    
+    return null;
+});
+
+const onImageError = (): void => {
+    imageError.value = true;
+    console.warn(`Error cargando imagen para método: ${props.method}`);
+}
 
 const isSelected = computed(() => props.selectedMethod === props.method);
 
